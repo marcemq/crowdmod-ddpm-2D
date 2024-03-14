@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn   
 import torch.nn.functional as F
+import numpy as np
 from torch.cuda import amp
 from torchmetrics import MeanMetric
 from tqdm import tqdm
@@ -34,6 +35,13 @@ def train_one_epoch(denoiser_model:nn.Module,sampler:nn.Module,loader,optimizer,
             tq.update(1)
             # Take a batch of macropros sequences
             x_train, y_train, stats = batched_train_data
+            stats_per_batch = torch.empty((4,4))
+            for i in range(4):
+                stats_per_batch[i, 0], stats_per_batch[i, 1], stats_per_batch[i, 2], stats_per_batch[i, 3] = torch.mean(x_train[:,i,:,:]), torch.std(x_train[:,i,:,:]), torch.min(x_train[:,i,:,:]), torch.max(x_train[:,i,:,:])
+                print(f'Stats per batched data channel {i} ==> mean:{stats_per_batch[i, 0]:.4f}, std:{stats_per_batch[i, 1]:.4f}, min:{stats_per_batch[i, 2]:.4f}, max:{stats_per_batch[i, 3]:.4f}')
+            stats_flat = stats_per_batch.flatten()
+            with open('images/data_range.csv', 'ab') as f:
+                np.savetxt(f, [np.array(stats_flat)], delimiter=',')
             x_train, y_train = x_train.float(), y_train.float()
             x_train, y_train = x_train.to(device=device), y_train.to(device=device)
 
